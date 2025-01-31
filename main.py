@@ -50,7 +50,7 @@ def main():
         st.title("➕ Agregar Manual")
         ManualForm.agregar_manual_form(db)
     elif choice == "Ver Mapa":
-        st.title("🗺️ Representaciones del Mapa Doctrinario")
+        st.title("🗺️ Mapa Doctrinario")
         Visualization.mostrar_mapa(db)
 
     elif choice == "Modificar Manual":
@@ -64,4 +64,6 @@ def main():
         ExcelGenerator.generar_excel_filtrado(db)
 
 if __name__ == "__main__":
-    main()
+    db = DatabaseManager()  # Inicializa la base de datos correctamente
+    db.create_table()       # Crear tabla si no existe
+    main()  
