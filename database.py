@@ -2,7 +2,8 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 class DatabaseManager:
-    def __init__(self, cred_file, db_url):
+    def __init__(self, cred_file):
+        db_url = "https://mapa-doctrinario-default-rtdb.firebaseio.com/"  # URL extraída del enlace proporcionado
         if not firebase_admin._apps:  # Verifica si Firebase ya está inicializado
             cred = credentials.Certificate(cred_file)
             firebase_admin.initialize_app(cred, {"databaseURL": db_url})
