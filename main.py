@@ -33,11 +33,7 @@ def main():
     menu = ["Inicio", "Agregar Manual", "Ver Mapa", "Modificar Manual", "Generar Excel", "Borrar Manual"]
     choice = st.sidebar.radio("Seleccione una opción:", menu)
 
-    db = DatabaseManager(
-    cred_file="firebase_credenciales.json",  # Ruta relativa
-    db_url="https://mapa-doctrinario-default-rtdb.firebaseio.com/"
-    )
-
+    db = DatabaseManager("firebase_credenciales.json")  # Solo la credencial
 
     # Navegar entre las opciones
     if choice == "Inicio":
