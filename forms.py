@@ -3,10 +3,6 @@ import streamlit as st
 class ManualForm:
     @staticmethod
     def agregar_manual_form(db):
-        # Campo para ID del Manual
-        manual_id = st.number_input("ID del Manual", min_value=0, step=1, value=0)
-        if manual_id == 0:
-            manual_id = None  # Si el usuario deja 0, se asignará automáticamente
 
         categorias_x = [
             "Esencial",
@@ -44,7 +40,7 @@ class ManualForm:
         opciones_anio = ["No Publicado"] + list(range(2018, 2031))  # Agregar la opción al inicio
         anio = st.selectbox("Año de Publicación:", opciones_anio)
 
-        estados = ["Publicado", "Actualización", "En Generación", "Virtualizado","Por Generar"]
+        estados = ["Publicado", "Actualización", "En Generación", "Virtualizado", "Por Generar"]
         estado = st.selectbox("Estado del Manual:", estados)
 
         subproceso_estado = None
@@ -53,9 +49,9 @@ class ManualForm:
             subproceso_estado = st.selectbox("Subproceso del Estado:", subprocesos_estado)
 
         if st.button("Agregar Manual"):
-            if categoria_x and subcategoria_x and categoria_y and nombre and anio and estado:
-                db.add_manual(manual_id, categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado)
-                st.success(f"✅ Manual '{nombre}' agregado correctamente con ID {manual_id if manual_id else 'Asignado automáticamente'}.")
+            if (categoria_x, subcategoria_x, categoria_y, nombre, anio, estado):
+                db.add_manual(categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado)
+                st.success(f"✅ Manual '{nombre}' agregado correctamente.")
             else:
                 st.error("❌ Todos los campos son obligatorios. Por favor, complete la información.")
 
@@ -116,7 +112,11 @@ class ManualForm:
 
         anio = st.selectbox("Año de Publicación:", opciones_anio, index=opciones_anio.index(anio_actual))
 
-        estado = st.selectbox("Estado del Manual:", ["Publicado", "Actualización", "En Generación"], index=["Publicado", "Actualización", "En Generación"].index(manual.get("estado", "Publicado")))
+        estados = ["Publicado", "Actualización", "En Generación", "Virtualizado", "Por Generar"]
+        estado_actual = manual.get("estado", "Publicado")
+        if estado_actual not in estados:
+            estado_actual = "Publicado"
+        estado = st.selectbox("Estado del Manual:", estados, index=estados.index(estado_actual))
 
         subproceso_estado = st.text_input("Subproceso del Estado:", value=manual.get("subproceso_estado", ""))
 

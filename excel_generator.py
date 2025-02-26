@@ -2,10 +2,15 @@ import streamlit as st
 import pandas as pd
 from io import BytesIO
 import numpy as np
+from database import DatabaseManager
+import xlsxwriter  # Asegúrate de que xlsxwriter esté importado
 
 class ExcelGenerator:
     @staticmethod
-    def generar_excel_filtrado(db):
+    def generar_excel_filtrado(db_file):
+        # Inicializar la conexión con la base de datos SQLite
+        db = DatabaseManager(db_file)
+
         # Obtener datos desde la base de datos
         data = db.fetch_data()
 
@@ -97,3 +102,8 @@ class ExcelGenerator:
             file_name="manuales_filtrados.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+# Uso del generador de Excel
+if __name__ == "__main__":
+    db_file = "doctrina.db"  # Ruta al archivo de la base de datos SQLite
+    ExcelGenerator.generar_excel_filtrado(db_file)

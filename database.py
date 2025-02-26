@@ -1,94 +1,97 @@
-import firebase_admin
-from firebase_admin import credentials, db
+import sqlite3
 
 class DatabaseManager:
-    def __init__(self, cred_file, db_url):
-        if not firebase_admin._apps:  # Verifica si Firebase ya está inicializado
-            cred = credentials.Certificate(cred_file)
-            firebase_admin.initialize_app(cred, {"databaseURL": db_url})
-        self.ref = db.reference("manuales")
-
-
-    def add_manual(self, manual_id, categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado, id_categoria=0):
+    def __init__(self, db_file):
         """
-        Agrega un manual a Firebase. Si manual_id es None, se generará automáticamente.
+        Inicializa la conexión con la base de datos SQLite y crea la tabla si no existe.
         """
-        nuevo_manual = {
-            "id": manual_id,
-            "categoria_x": categoria_x,
-            "subcategoria_x": subcategoria_x,
-            "categoria_y": categoria_y,
-            "nombre": nombre,
-            "anio": anio,
-            "estado": estado,
-            "subproceso_estado": subproceso_estado,
-            "id_categoria": id_categoria
-        }
-        if manual_id:  # Si se especifica un ID manual, usa ese como clave
-            self.ref.child(str(manual_id)).set(nuevo_manual)
-        else:  # Genera automáticamente una clave
-            self.ref.push(nuevo_manual)
+        self.conn = sqlite3.connect(db_file)
+        self.cursor = self.conn.cursor()
+        self._create_table()
+
+    def _create_table(self):
+        """
+        Crea la tabla 'manuales' si no existe.
+        """
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS manuales (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria_x TEXT,
+                subcategoria_x TEXT,
+                categoria_y TEXT,
+                nombre TEXT,
+                anio INTEGER,
+                estado TEXT,
+                subproceso_estado TEXT,
+                id_categoria INTEGER DEFAULT 0
+            )
+        ''')
+        self.conn.commit()
+
+    def add_manual(self, categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado, id_categoria=0):
+        """
+        Agrega un nuevo manual a la base de datos SQLite.
+        """
+        self.cursor.execute('''
+            INSERT INTO manuales (categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado, id_categoria)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado, id_categoria))
+        self.conn.commit()
+        return self.cursor.lastrowid  # Devuelve el ID del nuevo manual
 
     def fetch_data(self):
         """
-        Obtiene todos los manuales almacenados en Firebase.
+        Obtiene todos los manuales de la base de datos.
         """
-        datos = self.ref.get()
-        
-        # Si los datos están vacíos, devuelve una lista vacía
-        if not datos:
-            return []
-
-        # Si los datos son un diccionario, procesarlos normalmente
-        if isinstance(datos, dict):
-            return [{"id": key, **value} for key, value in datos.items()]
-
-        # Si los datos son una lista, procesarlos como lista
-        if isinstance(datos, list):
-            return [{"id": idx, **value} for idx, value in enumerate(datos) if value]  # Filtra valores vacíos
-
-        # Si los datos no son ni un diccionario ni una lista, lanza una excepción
-        raise TypeError("Formato inesperado de los datos en Firebase.")
-
+        self.cursor.execute('SELECT * FROM manuales')
+        rows = self.cursor.fetchall()
+        return [self._convert_to_dict(row) for row in rows]
 
     def fetch_manual_by_id(self, manual_id):
         """
         Obtiene un manual específico por su ID.
         """
-        manual = self.ref.child(str(manual_id)).get()
-        if manual:
-            return manual  # Devuelve el manual como un diccionario
-        return None
-
+        self.cursor.execute('SELECT * FROM manuales WHERE id = ?', (manual_id,))
+        row = self.cursor.fetchone()
+        return self._convert_to_dict(row) if row else None
 
     def update_manual(self, manual_id, categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado):
         """
-        Actualiza un manual existente en Firebase.
+        Actualiza un manual existente en la base de datos.
         """
-        updated_data = {
-            "categoria_x": categoria_x,
-            "subcategoria_x": subcategoria_x,
-            "categoria_y": categoria_y,
-            "nombre": nombre,
-            "anio": anio,
-            "estado": estado,
-            "subproceso_estado": subproceso_estado
-        }
-        self.ref.child(str(manual_id)).update(updated_data)
+        self.cursor.execute('''
+            UPDATE manuales
+            SET categoria_x = ?, subcategoria_x = ?, categoria_y = ?, nombre = ?, anio = ?, estado = ?, subproceso_estado = ?
+            WHERE id = ?
+        ''', (categoria_x, subcategoria_x, categoria_y, nombre, anio, estado, subproceso_estado, manual_id))
+        self.conn.commit()
 
     def delete_manual(self, manual_id):
         """
         Elimina un manual por su ID.
         """
-        # Convierte el manual_id a string para buscarlo como clave en Firebase
-        manual_id_str = str(manual_id)
-        
-        # Busca el manual en la base de datos
-        manual_ref = self.ref.child(manual_id_str)
-        if manual_ref.get():
-            # Si existe, lo elimina
-            manual_ref.delete()
-            return True
-        return False
+        self.cursor.execute('DELETE FROM manuales WHERE id = ?', (manual_id,))
+        self.conn.commit()
+        return self.cursor.rowcount > 0  # Devuelve True si se eliminó un registro
 
+    def _convert_to_dict(self, row):
+        """
+        Convierte una fila de la base de datos en un diccionario.
+        """
+        return {
+            "id": row[0],
+            "categoria_x": row[1],
+            "subcategoria_x": row[2],
+            "categoria_y": row[3],
+            "nombre": row[4],
+            "anio": row[5],
+            "estado": row[6],
+            "subproceso_estado": row[7],
+            "id_categoria": row[8]
+        }
 
+    def close_connection(self):
+        """
+        Cierra la conexión con la base de datos.
+        """
+        self.conn.close()

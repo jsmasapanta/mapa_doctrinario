@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from database import DatabaseManager
 
 class Visualization:
     @staticmethod
-    def mostrar_mapa_filtrado(db):
+    def mostrar_mapa_filtrado(db_file):
+        # Inicializar la conexión con la base de datos SQLite
+        db = DatabaseManager(db_file)
+
         # Obtener datos desde la base de datos
         data = db.fetch_data()
 
@@ -74,3 +78,8 @@ class Visualization:
         # 🔹 Mostrar la tabla filtrada
         st.write("### 🗺️ Mapa Doctrinario Filtrado")
         st.dataframe(df)
+
+# Uso de la visualización
+if __name__ == "__main__":
+    db_file = "doctrina.db"  # Ruta al archivo de la base de datos SQLite
+    Visualization.mostrar_mapa_filtrado(db_file)
